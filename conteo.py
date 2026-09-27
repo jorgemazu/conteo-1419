@@ -1,5 +1,5 @@
 # MU Immortal - contador HUD + inventario
-# 1.4.19
+# 1.4.20
 # 1. Bolsa y baul solo si hay una foto donde se ven los dos.
 # 2. Si la foto es solo la bolsa, se lee nada mas el cuadro
 #    de oro, MUC, bound MUC y diamantes.
@@ -110,106 +110,43 @@ def bag_left_frac(img):
     return best_x / float(w)
 
 
-HUD_BOXES_1280 = {
-    # cuadro de monedas, medido en 1280x720 sobre las fotos del 2026-09-23
-    "gold": (568, 630, 674, 652),
-    "muc": (778, 630, 862, 652),
-    "diamantes": (600, 668, 692, 688),
-    "boundmuc": (800, 672, 900, 686),
+HUD_TMPL = {
+    "0": ("0ff00ff03c3c3c3cf00cf00cf00cf00ff00ff00ff00fc00fc00ff00ff00ff00ff00ff00cf00cf00c3c3c3c3c0ff00ff0","0ff00ff03c3c3c3c300f300f300f300ff003f003f003f003f003f003f003f003300f300f3c0c3c0c0f3c0f3c03c003c0","0ff00ff03c3c3c3c300f300f300f300ff003f003f003f003f003f003f003f003300f300f3c0c3c0c0c3c0c3c03c003c0"),
+    "1": ("ffffffff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff","ffffffff07ff07ff001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f"),
+    "2": ("3fe03fe0f87cf87cc01cc01cc01cc01c001c001c0060006001e001e007800780060006003e003e00f800f800ffffffff",),
+    "3": ("3fe03fe0c07cc07c001c001c001c007c007c01e001e001e001e0001c001c001f001f001f001f001fc01cc01cffe0ffe0","07fc07fc381c381c381f381f001f001f001c001c01fc01fc001f001f0003000300030003f803f8033e7f3e7f07e007e0"),
+    "4": ("007c007c01fc01fc019c019c019c061c061c061c061c381c381cf81ff81fffffffff007f007f007f001c001c001c001c",),
+    "5": ("3ffc3ffc380038003800380038003e003e003fe03fe0007c007c001f001f001f001f001c001c001cc07cc07cffe0ffe0",),
+    "6": ("0060006001e001e00780078007803f803f803ffc3ffc3e1f3e1ff803f803f803f803f803f803f803381f381f07fc07fc","01e001e0078007803e003e003e003e003e00ffe0ffe0f87cf87cc01fc01fc01fc01fc01fc01fc01ff81cf81c3fe03fe0","0060006001e001e007800780060006003ffc3ffc3fff3ffff803f803f803f803f803f803380338033e1f3e1f01e001e0"),
+    "7": ("ffffffff00070007001f001f001f0018001800f800f800e000e007e007e0070007000700070007001800180018001800","ffffffff001f001f001c001c001c001c001c006000600060006001e001e001800180078007800780060006003e003e00"),
+    "8": ("07fc07fc3e1f3e1f3803380338033e1c3e1c07fc07fc3ffc3ffc38033803f803f803f803f803f803381f381f07fc07fc",),
+    "9": ("07fc07fc381f381ff803f803f803f803f803f803f8033e1f3e1f07ff07ff007c007c007c007c007c01e001e001800180",),
 }
-# moneda de oro, a la izquierda del numero. Sirve para saber que es solo bolsa.
-COIN_1280 = (488, 622, 552, 658)
-
-_HUD_BANK_TXT = """
-0:0ff00ff03c3c3c3c300f300f300f300f300ff003f003f003f003f003f003f003f003300f300f300f3c0c3c0c0f3c0f3c
-0:0ff00ff03c3c3c3cf00cf00cf00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00cf00c300c300c3c303c3003c003c0
-0:0ff00ff03c0c3c0c300f300f300ff00ff00ff003f003f003f003f003f003f00ff00f300f300f300f3c0c3c0c0ff00ff0
-0:0ff00ff03c3c3c3c300c300cf00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00cf00c300c300c3c303c3003c003c0
-1:ffffffff07ff07ff001f001f001f001f001f001f001f001f001f001f001f07ff07ff07ff07ff07ff07ff07ff001f001f
-1:ffffffff07ff07ff001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f001f
-1:ffffffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff
-1:ffffffff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff07ff
-2:07fc07fc3e1f3e1ff803f803f803f803001f001f001c001c0060006001e001e007800780060006003e003e003fff3fff
-2:3ffc3ffcf81cf81cc01fc01f001c001c007c007c0060006001e001e0078007803e003e003e003e00fffcfffc3ffc3ffc
-2:1ff81ff8f81ff81fe007e007e007e007e007001f001f0018001800f800f807e007e00700070007001f001f00ff00ff00
-2:07fc07fc381f381ff803f80300030003001f001f007c007c0060006001e001e0078007803e003e003fff3fff07ff07ff
-3:3ffc3ffc381c381c001f001f001f001c001c007c007c007c007c001f001f00030003000300030003f81ff81f3ffc3ffc
-3:3fe03fe0f87cf87c001c001c001c007c007c01e001e001e001e0007c007c001f001f001f001f001fc07cc07cffe0ffe0
-3:07fc07fc381c381c381f381f001f001f001c001c01fc01fc001f001f0003000300030003f81ff81f3e7f3e7f07e007e0
-3:07fc07fc381c381c381f381f001f001f001c001c01fc01fc001f001f0003000300030003f803f8033e7f3e7f07e007e0
-4:007c007c01fc01fc019c019c019c061c061c061c061c381c381cf81ff81fffffffff007f007f007f001c001c001c001c
-4:007f007f007f007f01ff01ff01ff079f079f061f061f3e1f3e1f381f381fffffffff007f007f007f001f001f001f001f
-5:3ffc3ffc380038003800380038003e003e003fe03fe0007c007c001f001f001f001f001f001f001fc07cc07cffe0ffe0
-5:1fff1fff18001800180018001800f800f800fff8fff8001f001f0007000700070007000700070007001f001ffff8fff8
-5:3ffc3ffc3e003e00380038003800380038003fe03fe039fc39fc001c001c001f001f001f001f001f001c001cf9fcf9fc
-6:0060006001e001e00780078007803f803f803ffc3ffc3e1f3e1ff803f803f803f803f803f803f803381f381f07fc07fc
-6:01e001e0078007803e003e003e003e003e00ffe0ffe0f87cf87cc01fc01fc01fc01fc01fc01fc01ff81cf81c3fe03fe0
-6:007c007c01e001e0078007803e003e003ffc3ffc3fff3ffff803f803f803f803f803f803380338033e7f3e7f01e001e0
-6:01e001e0078007803e003e003e003e003e00ffe0ffe0f87cf87cc01fc01fc01fc01fc01fc01fc01ff81cf81c3ffc3ffc
-7:ffffffff001f001f00180018001800f800f800e000e000e000e007e007e0070007001f001f001f0018001800f800f800
-7:ffffffff001f001f001c001c001c001c007c007c0060006001e001e00180018007800780060006003e003e0038003800
-7:ffffffff00070007001f001f001f0018001800f800f800e000e007e007e0070007001f001f001f001800180018001800
-7:ffffffff001f001f00180018001800f800f800e000e000e000e007000700070007001f001f001f0018001800f800f800
-8:07fc07fc3e1f3e1f3803380338033e1c3e1c07fc07fc3ffc3ffc38033803f803f803f803f803f803381f381f07fc07fc
-8:3fe03fe0f81cf81cf81cf81cf81c387c387c3fe03fe03ffc3ffcf81cf81cc01fc01fc01fc01fc01ff81cf81c3ffc3ffc
-8:07fc07fc3e1f3e1f3803380338033e1f3e1f07fc07fc3ffc3ffc38033803f803f803f803f803f803381f381f07fc07fc
-9:07fc07fc381f381ff803f803f803f803f803f803f8033e1f3e1f07ff07ff007c007c007c007c007c01e001e001800180
-9:07fc07fc3e1f3e1ff803f803f803f803f803f803f8033e1f3e1f07ff07ff007c007c007c007c007c01e001e001800180
-"""
+HUD_HOLES = {"0": {1}, "1": {0}, "2": {0}, "3": {0}, "4": {1}, "5": {0}, "6": {1}, "7": {0}, "8": {2}, "9": {1}}
+_HUD_VECS = None
 
 
-def _scale_box(box, w, h):
-    x0, y0, x1, y1 = box
-    return (
-        int(round(x0 * w / 1280.0)),
-        int(round(y0 * h / 720.0)),
-        int(round(x1 * w / 1280.0)),
-        int(round(y1 * h / 720.0)),
-    )
+def _rgb(img):
+    if not isinstance(img, np.ndarray):
+        img = np.array(img.convert("RGB"))
+    if img.ndim == 2:
+        img = np.stack([img, img, img], axis=-1)
+    if img.shape[-1] == 4:
+        img = img[:, :, :3]
+    return img
 
 
-def hud_boxes(img):
-    h, w = img.shape[:2]
-    return {k: _scale_box(b, w, h) for k, b in HUD_BOXES_1280.items()}
+def _gold_mask(img):
+    rgb = _rgb(img)
+    r = rgb[:, :, 0].astype(np.int16)
+    g = rgb[:, :, 1].astype(np.int16)
+    b = rgb[:, :, 2].astype(np.int16)
+    return (r > 145) & (g > 100) & (g < 225) & (b < 155) & ((r - b) > 28) & (r + 20 > g)
 
 
-def _hud_bank():
-    global _HUD_BANK
-    if _HUD_BANK is not None:
-        return _HUD_BANK
-    bank = []
-    for line in _HUD_BANK_TXT.splitlines():
-        line = line.strip()
-        if not line or ":" not in line:
-            continue
-        ch, hx = line.split(":", 1)
-        bits = bin(int(hx, 16))[2:].zfill(16 * 24)
-        bank.append((ch, np.array([1 if b == "1" else 0 for b in bits], dtype=np.uint8)))
-    _HUD_BANK = bank
-    return bank
-
-
-_HUD_BANK = None
-
-
-def _shift_box(box, dx, dy, w, h):
-    x0, y0, x1, y1 = box
-    x0, x1 = x0 + dx, x1 + dx
-    y0, y1 = y0 + dy, y1 + dy
-    if x0 < 0 or y0 < 0 or x1 > w or y1 > h or x1 - x0 < 8 or y1 - y0 < 8:
-        return None
-    return (x0, y0, x1, y1)
-
-
-def _glyphs_in_box(img, box, thr=125):
-    x0, y0, x1, y1 = box
-    crop = img[y0:y1, x0:x1]
-    if crop.size == 0:
-        return []
-    g = np.array(Image.fromarray(crop).convert("L"))
-    g = np.array(Image.fromarray(g).resize((g.shape[1] * 3, g.shape[0] * 3), Image.NEAREST))
-    ink = g > thr
-    cols = ink.any(axis=0)
+def _col_glyphs(mask, y0, y1, min_col):
+    band = mask[y0:y1]
+    cols = band.sum(0) >= min_col
     out = []
     i = 0
     n = int(cols.shape[0])
@@ -220,135 +157,220 @@ def _glyphs_in_box(img, box, thr=125):
         j = i
         while j < n and cols[j]:
             j += 1
-        sl = ink[:, i:j]
-        rows = sl.any(axis=1)
+        sl = band[:, i:j]
+        rows = sl.any(1)
         if rows.any():
             r0 = int(np.argmax(rows))
             r1 = int(len(rows) - np.argmax(rows[::-1]))
-            if (r1 - r0) >= 16 and (j - i) >= 8:
-                out.append(sl[r0:r1])
+            g = sl[r0:r1].astype(np.uint8)
+            bh, bw = g.shape
+            if bh >= 6 and 1 <= bw <= bh * 1.15:
+                out.append({"x0": i, "x1": j, "w": bw, "h": bh, "g": g})
         i = j + 1
     return out
 
 
-def _norm_glyph(g):
-    im = Image.fromarray((g.astype(np.uint8) * 255)).resize((16, 24), Image.NEAREST)
-    return (np.array(im) > 80).astype(np.uint8).ravel()
+def _gold_bands(mask, min_row):
+    hot = mask.sum(1) >= min_row
+    raw = []
+    i = 0
+    h = len(hot)
+    while i < h:
+        if not hot[i]:
+            i += 1
+            continue
+        j = i
+        while j < h and hot[j]:
+            j += 1
+        if j - i >= 8:
+            raw.append([i, j])
+        i = j
+    merged = []
+    for b in raw:
+        if merged and b[0] - merged[-1][1] <= 4:
+            merged[-1][1] = b[1]
+        else:
+            merged.append(b)
+    return [(a, c) for a, c in merged]
 
 
-def _match_hud_glyph(g):
-    v = _norm_glyph(g).astype(np.int16)
-    best, bch = 9.0, None
-    for ch, tpl in _hud_bank():
-        sc = float(np.abs(v - tpl.astype(np.int16)).mean())
-        if sc < best:
-            best, bch = sc, ch
-    if bch is None or best > 0.28:
-        return None
-    return bch
+def _groups(glyphs):
+    digits = [g for g in glyphs if g["w"] <= g["h"] * 0.92]
+    if not digits:
+        return []
+    med = float(np.median([g["w"] for g in digits]))
+    digits = sorted(digits, key=lambda t: t["x0"])
+    groups = [[digits[0]]]
+    for a, b in zip(digits, digits[1:]):
+        if b["x0"] - a["x1"] > max(3, med * 1.35):
+            groups.append([b])
+        else:
+            groups[-1].append(b)
+    return [g for g in groups if 1 <= len(g) <= 10]
 
 
-def _read_box_digits(img, box):
-    glyphs = _glyphs_in_box(img, box)
-    if not glyphs:
-        return None
-    chars = []
-    for g in glyphs:
-        ch = _match_hud_glyph(g)
-        if not ch:
-            return None
-        chars.append(ch)
-    return "".join(chars)
+def _find_money_panel(img):
+    mask = _gold_mask(img)
+    H = mask.shape[0]
+    min_row = 12 if H > 400 else 8
+    min_col = 1 if H > 400 else 2
+    cands = []
+    for y0, y1 in _gold_bands(mask, min_row):
+        gr = _groups(_col_glyphs(mask, y0, y1, min_col))
+        if len(gr) >= 2:
+            cands.append((y0, y1, gr))
+    best = None
+    for i, (y0, y1, gr) in enumerate(cands):
+        for y2, y3, gr2 in cands[i + 1:i + 3]:
+            if not (0 < y2 - y1 <= 36):
+                continue
+            for L in gr:
+                for R in gr:
+                    if R[0]["x0"] < L[-1]["x1"] + 12:
+                        continue
+                    eL, eR = L[-1]["x1"], R[-1]["x1"]
+                    if eR - eL < 40:
+                        continue
+                    for L2 in gr2:
+                        if abs(L2[-1]["x1"] - eL) > 14:
+                            continue
+                        for R2 in gr2:
+                            if abs(R2[-1]["x1"] - eR) > 14:
+                                continue
+                            if R2[0]["x0"] < L2[-1]["x1"] + 12:
+                                continue
+                            score = len(L) + len(R) + len(L2) + len(R2) + (y0 / float(H)) * 3
+                            if best is None or score > best[0]:
+                                best = (score, [L, R, L2, R2])
+    return None if best is None else best[1]
 
 
-def _as_int(digits):
-    if not digits or not digits.isdigit():
-        return None
-    try:
-        n = int(digits)
-    except Exception:
-        return None
-    if n < 0 or n > 9_999_999_999:
-        return None
+def _norm_glyph(g, W=16, H=24):
+    im = Image.fromarray((g * 255).astype(np.uint8)).resize((W, H), Image.NEAREST)
+    return (np.array(im) > 80).astype(np.uint8)
+
+
+def _holes(binimg):
+    h, w = binimg.shape
+    bg = np.zeros_like(binimg, np.uint8)
+    stack = [(y, x) for y in (0, h - 1) for x in range(w)]
+    stack += [(y, x) for x in (0, w - 1) for y in range(h)]
+    while stack:
+        y, x = stack.pop()
+        if y < 0 or x < 0 or y >= h or x >= w or bg[y, x] or binimg[y, x]:
+            continue
+        bg[y, x] = 1
+        stack.extend(((y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)))
+    seen = bg.copy()
+    n = 0
+    for y in range(h):
+        for x in range(w):
+            if binimg[y, x] or seen[y, x]:
+                continue
+            n += 1
+            stack = [(y, x)]
+            seen[y, x] = 1
+            while stack:
+                cy, cx = stack.pop()
+                for ny, nx in ((cy - 1, cx), (cy + 1, cx), (cy, cx - 1), (cy, cx + 1)):
+                    if 0 <= ny < h and 0 <= nx < w and not seen[ny, nx] and not binimg[ny, nx]:
+                        seen[ny, nx] = 1
+                        stack.append((ny, nx))
     return n
 
 
-def _tess_digits(pil_img):
-    if pil_img is None or not HAS_TESS:
-        return None
-    try:
-        t = pytesseract.image_to_string(
-            pil_img,
-            config="--psm 7 -c tessedit_char_whitelist=0123456789",
-        )
-        digits = re.sub(r"\D", "", t or "")
-        return digits or None
-    except Exception:
-        return None
+def _slope(n):
+    xs = []
+    for y, row in enumerate(n):
+        idx = np.where(row)[0]
+        if len(idx):
+            xs.append((y, float(idx.mean())))
+    if len(xs) < 4:
+        return 0.0
+    ys = np.array([a for a, _ in xs], dtype=np.float64)
+    xx = np.array([b for _, b in xs], dtype=np.float64)
+    A = np.vstack([ys, np.ones(len(ys))]).T
+    m, _c = np.linalg.lstsq(A, xx, rcond=None)[0]
+    return float(m)
 
 
-def hud_panel_visible(img):
-    """La moneda de oro del cuadro esta en pantalla: es la bolsa, no el almacen."""
-    h, w = img.shape[:2]
-    x0, y0, x1, y1 = _scale_box(COIN_1280, w, h)
-    x0, y0 = max(0, x0), max(0, y0)
-    x1, y1 = min(w, x1), min(h, y1)
-    if x1 - x0 < 8 or y1 - y0 < 8:
-        return False
-    coin = img[y0:y1, x0:x1].astype(np.int16)
-    r, g, b = coin[:, :, 0], coin[:, :, 1], coin[:, :, 2]
-    yel = ((r > 140) & (g > 110) & (b < 120) & (r > b + 30)).mean()
-    return float(yel) > 0.06
-
-
-def read_hud(img, shift=(0, 0)):
-    h, w = img.shape[:2]
-    dx, dy = shift
-    boxes = hud_boxes(img)
+def _vecs():
+    global _HUD_VECS
+    if _HUD_VECS is not None:
+        return _HUD_VECS
     out = {}
-    for key in ("gold", "muc", "diamantes", "boundmuc"):
-        box = _shift_box(boxes[key], dx, dy, w, h)
-        if box is None:
-            continue
-        digits = _read_box_digits(img, box)
-        val = _as_int(digits)
-        if val is None and HAS_TESS:
-            # mismo recorte, por si el glifo no esta en el banco
-            crop = img[box[1]:box[3], box[0]:box[2]]
-            pil = Image.fromarray(crop).resize((crop.shape[1] * 3, crop.shape[0] * 3), Image.NEAREST)
-            gray = np.array(pil.convert("L"))
-            bw = np.where(gray > 125, 255, 0).astype(np.uint8)
-            raw = _tess_digits(Image.fromarray(bw))
-            val = _as_int(raw)
-            digits = raw
-        if val is not None:
-            out[key] = val
-            print("HUD", key, val, "raw", digits, "box", box)
-        else:
-            print("HUD", key, "vacio raw", digits, "box", box)
+    for ch, hexs in HUD_TMPL.items():
+        vecs = []
+        for hx in hexs:
+            bits = bin(int(hx, 16))[2:].zfill(16 * 24)
+            vecs.append(np.array([1 if b == "1" else 0 for b in bits], dtype=np.uint8))
+        out[ch] = vecs
+    _HUD_VECS = out
     return out
 
 
-def _hud_score(hud):
-    if not hud or "gold" not in hud or "muc" not in hud:
-        return -1
-    return 100 + (1 if "diamantes" in hud else 0) + (1 if "boundmuc" in hud else 0)
+def _read_glyphs(glyphs):
+    s = ""
+    vecs = _vecs()
+    for g in glyphs:
+        n = _norm_glyph(g["g"])
+        v = n.astype(np.int16).ravel()
+        hh = _holes(n)
+        ratio = g["w"] / float(g["h"])
+        if hh >= 2:
+            s += "8"
+            continue
+        if ratio < 0.42 and hh == 0:
+            s += "1"
+            continue
+        best, bch = 9.0, None
+        for ch, tpls in vecs.items():
+            if hh not in HUD_HOLES.get(ch, ()):
+                continue
+            if ch == "1" and ratio >= 0.42:
+                continue
+            sc = min(float(np.abs(v - t.astype(np.int16)).mean()) for t in tpls)
+            if sc < best:
+                best, bch = sc, ch
+        if bch in ("2", "3"):
+            sl = _slope(n)
+            if bch == "3" and sl <= -0.09:
+                bch = "2"
+            elif bch == "2" and sl > -0.04:
+                bch = "3"
+        if not bch or best > 0.42:
+            return None
+        s += bch
+    return s
+
+
+def hud_panel_visible(img):
+    """El cuadro de monedas esta abierto: cuatro numeros alineados a la derecha."""
+    try:
+        return _find_money_panel(img) is not None
+    except Exception:
+        return False
 
 
 def read_hud_best(img):
-    """Primero el recorte medido. Si el oro o el MUC fallan, prueba un desplazamiento chico."""
-    base = read_hud(img, (0, 0))
-    if _hud_score(base) >= 100:
-        return base
-    h, w = img.shape[:2]
-    best, bsc = base, _hud_score(base)
-    for dy in (-8, -4, 4, 8):
-        for dx in (-8, -4, 4, 8):
-            hud = read_hud(img, (dx, dy))
-            sc = _hud_score(hud)
-            if sc > bsc:
-                best, bsc = hud, sc
-    return best
+    """Oro, MUC, diamantes y bound MUC. No usa coordenadas fijas ni Tesseract."""
+    try:
+        panel = _find_money_panel(img)
+    except Exception as exc:
+        print("HUD error", exc)
+        return {}
+    if not panel:
+        print("HUD panel no encontrado")
+        return {}
+    out = {}
+    for key, glyphs in zip(("gold", "muc", "diamantes", "boundmuc"), panel):
+        raw = _read_glyphs(glyphs)
+        if raw and raw.isdigit():
+            out[key] = int(raw)
+            print("HUD", key, out[key], "raw", raw)
+        else:
+            print("HUD", key, "vacio", raw)
+    return out
 
 
 def es_baul_y_bolsa(img):
