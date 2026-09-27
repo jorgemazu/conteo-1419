@@ -165,7 +165,7 @@ def _col_glyphs(mask, y0, y1, min_col):
             g = sl[r0:r1].astype(np.uint8)
             bh, bw = g.shape
             if bh >= 6 and 1 <= bw <= bh * 1.15:
-                out.append({"x0": i, "x1": j, "w": bw, "h": bh, "g": g})
+                out.append({"x0": i, "x1": j, "y0": y0 + r0, "w": bw, "h": bh, "g": g})
         i = j + 1
     return out
 
@@ -209,6 +209,28 @@ def _groups(glyphs):
     return [g for g in groups if 1 <= len(g) <= 10]
 
 
+def _slot_dark(img, glyphs):
+    """A la izquierda del numero hay casilla negra, no un icono de la mochila."""
+    rgb = _rgb(img)
+    y0 = min(t["y0"] for t in glyphs)
+    y1 = max(t["y0"] + t["h"] for t in glyphs)
+    x1 = min(t["x0"] for t in glyphs)
+    h = max(4, y1 - y0)
+    x0 = max(0, x1 - int(h * 2.2))
+    if x1 - x0 < 4 or y1 <= y0:
+        return 0.0
+    sl = rgb[y0:y1, x0:x1]
+    luma = sl.astype(np.int16).mean(axis=2)
+    return float((luma < 48).mean())
+
+
+def _same_height(groups):
+    heights = [float(np.median([t["h"] for t in g])) for g in groups]
+    if min(heights) < 6:
+        return False
+    return (max(heights) / min(heights)) <= 1.25
+
+
 def _find_money_panel(img):
     mask = _gold_mask(img)
     H = mask.shape[0]
@@ -222,7 +244,7 @@ def _find_money_panel(img):
     best = None
     for i, (y0, y1, gr) in enumerate(cands):
         for y2, y3, gr2 in cands[i + 1:i + 3]:
-            if not (0 < y2 - y1 <= 36):
+            if not (0 < y2 - y1 <= max(36, int(H * 0.06))):
                 continue
             for L in gr:
                 for R in gr:
@@ -238,6 +260,11 @@ def _find_money_panel(img):
                             if abs(R2[-1]["x1"] - eR) > 14:
                                 continue
                             if R2[0]["x0"] < L2[-1]["x1"] + 12:
+                                continue
+                            quad = (L, R, L2, R2)
+                            if not _same_height(quad):
+                                continue
+                            if any(_slot_dark(img, grp) < 0.90 for grp in quad):
                                 continue
                             score = len(L) + len(R) + len(L2) + len(R2) + (y0 / float(H)) * 3
                             if best is None or score > best[0]:
@@ -336,8 +363,6 @@ def _read_glyphs(glyphs):
             sl = _slope(n)
             if bch == "3" and sl <= -0.09:
                 bch = "2"
-            elif bch == "2" and sl > -0.04:
-                bch = "3"
         if not bch or best > 0.42:
             return None
         s += bch
